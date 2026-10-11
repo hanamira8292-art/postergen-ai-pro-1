@@ -21,4 +21,4 @@ export async function onRequestPost({request,env}) {
     return json({image});
   }catch(err){return json({error:err.name==="AbortError"?"Permintaan AI tamat masa": "Penjanaan gagal: "+err.message},500)}
 }
-export function onRequestGet(){return json({error:"Gunakan POST untuk menjana poster"},405)}
+export function onRequestGet(){return json({ok:true,service:"PosterGen AI Pro",endpoint:"/api/generate",method:"POST",configured:false,note:"Endpoint aktif. Gunakan POST untuk jana imej; API key disemak semasa POST."})}
