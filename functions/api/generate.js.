@@ -1,0 +1,24 @@
+// Cloudflare Pages Function: POST /api/generate
+const json = (data,status=200) => new Response(JSON.stringify(data), {status, headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});
+export async function onRequestPost({request,env}) {
+  if (!env.OPENAI_API_KEY) return json({error:"OPENAI_API_KEY belum ditetapkan dalam Cloudflare Pages."},503);
+  if (Number(request.headers.get("content-length")||0)>15000) return json({error:"Permintaan terlalu besar"},413);
+  try {
+    const raw=await request.text();
+    if(raw.length>15000) return json({error:"Permintaan terlalu besar"},413);
+    let payload;try{payload=JSON.parse(raw)}catch{return json({error:"JSON tidak sah"},400)}
+    const {prompt,style,ratio}=payload||{};
+    if(typeof prompt!=="string"||prompt.trim().length<5||prompt.length>2500)return json({error:"Prompt perlu 5 hingga 2500 aksara"},400);
+    const sizes={"9:16":"1024x1536","4:5":"1024x1536","1:1":"1024x1024","16:9":"1536x1024","A4":"1024x1536"};
+    const size=sizes[ratio]||"1024x1536";
+    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),55000);
+    let response;
+    try{response=await fetch("https://api.openai.com/v1/images/generations",{method:"POST",headers:{Authorization:`Bearer ${env.OPENAI_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({model:env.OPENAI_IMAGE_MODEL||"gpt-image-1",prompt:`Create a visually compelling professional poster background. Art style: ${String(style||"cinematic").slice(0,50)}. ${prompt.trim()}. Do not add any text, logos, or watermarks; leave readable space for text overlays.`,size,n:1,output_format:"png"}),signal:controller.signal})}finally{clearTimeout(timer)}
+    const data=await response.json();
+    if(!response.ok)return json({error:data.error?.message||"Pembekal AI menolak permintaan"},502);
+    const image=data.data?.[0]?.b64_json;
+    if(!image)return json({error:"Tiada imej dipulangkan oleh API"},502);
+    return json({image});
+  }catch(err){return json({error:err.name==="AbortError"?"Permintaan AI tamat masa": "Penjanaan gagal: "+err.message},500)}
+}
+export function onRequestGet(){return json({error:"Gunakan POST untuk menjana poster"},405)}
