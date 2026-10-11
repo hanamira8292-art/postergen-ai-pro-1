@@ -1,0 +1,9 @@
+{
+  "name": "PosterGen AI Pro",
+  "short_name": "PosterGen",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111319",
+  "theme_color": "#111319",
+  "lang": "ms"
+}
